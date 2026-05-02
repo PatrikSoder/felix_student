@@ -1,16 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const TOTAL_QUESTIONS = 10;
+const STORAGE_KEY = 'felix_quizwalk_state';
 
 const QuizWalk = () => {
-  const [teamName, setTeamName] = useState('');
-  const [hasStarted, setHasStarted] = useState(false);
-  const [currentQuestion, setCurrentQuestion] = useState(1);
-  const [answers, setAnswers] = useState<Record<number, string>>({});
+  // Load state from local storage on first render
+  const loadInitialState = () => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error("Could not parse saved state", e);
+    }
+    return null;
+  };
+
+  const savedState = loadInitialState();
+
+  const [teamName, setTeamName] = useState(savedState?.teamName || '');
+  const [hasStarted, setHasStarted] = useState(savedState?.hasStarted || false);
+  const [currentQuestion, setCurrentQuestion] = useState(savedState?.currentQuestion || 1);
+  const [answers, setAnswers] = useState<Record<number, string>>(savedState?.answers || {});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDone, setIsDone] = useState(false);
+  const [isDone, setIsDone] = useState(savedState?.isDone || false);
+
+  // Auto-save to localStorage whenever state changes
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      teamName,
+      hasStarted,
+      currentQuestion,
+      answers,
+      isDone
+    }));
+  }, [teamName, hasStarted, currentQuestion, answers, isDone]);
 
   const handleStart = (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,13 +46,24 @@ const QuizWalk = () => {
     }
   };
 
+  const handleReset = () => {
+    if (window.confirm('Är ni säkra på att ni vill börja om? Alla nuvarande svar kommer att raderas!')) {
+      localStorage.removeItem(STORAGE_KEY);
+      setTeamName('');
+      setHasStarted(false);
+      setCurrentQuestion(1);
+      setAnswers({});
+      setIsDone(false);
+    }
+  };
+
   const handleAnswer = (answer: string) => {
     setAnswers(prev => ({ ...prev, [currentQuestion]: answer }));
     if (currentQuestion < TOTAL_QUESTIONS) {
       setCurrentQuestion(prev => prev + 1);
-    } else {
-      submitAnswers({ ...answers, [currentQuestion]: answer });
     }
+    // We intentionally DO NOT auto-submit here anymore!
+    // They must explicitly click the "Skicka in svar" button at the bottom.
   };
 
   const submitAnswers = async (finalAnswers: Record<number, string>) => {
@@ -50,7 +88,7 @@ const QuizWalk = () => {
       <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center', marginTop: '2rem' }}>
         <h2>Tack för att ni deltog!</h2>
         <p>Era svar är sparade. Resultatet presenteras senare under kvällen.</p>
-        <button className="btn-secondary" onClick={() => window.location.reload()} style={{ marginTop: '1rem' }}>
+        <button className="btn-secondary" onClick={() => { localStorage.removeItem(STORAGE_KEY); window.location.reload(); }} style={{ marginTop: '1rem' }}>
           Skapa nytt lag
         </button>
       </div>
@@ -89,9 +127,9 @@ const QuizWalk = () => {
         <p>Sparar era svar...</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}>
-          <button className="btn-secondary" style={{ fontSize: '1.5rem', padding: '1rem' }} onClick={() => handleAnswer('1')}>1</button>
-          <button className="btn-secondary" style={{ fontSize: '1.5rem', padding: '1rem' }} onClick={() => handleAnswer('X')}>X</button>
-          <button className="btn-secondary" style={{ fontSize: '1.5rem', padding: '1rem' }} onClick={() => handleAnswer('2')}>2</button>
+          <button className="btn-secondary" style={{ fontSize: '1.5rem', padding: '1rem', border: answers[currentQuestion] === '1' ? '4px solid var(--sweden-blue)' : 'none' }} onClick={() => handleAnswer('1')}>1</button>
+          <button className="btn-secondary" style={{ fontSize: '1.5rem', padding: '1rem', border: answers[currentQuestion] === 'X' ? '4px solid var(--sweden-blue)' : 'none' }} onClick={() => handleAnswer('X')}>X</button>
+          <button className="btn-secondary" style={{ fontSize: '1.5rem', padding: '1rem', border: answers[currentQuestion] === '2' ? '4px solid var(--sweden-blue)' : 'none' }} onClick={() => handleAnswer('2')}>2</button>
         </div>
       )}
 
@@ -112,6 +150,12 @@ const QuizWalk = () => {
             Skicka in svar
           </button>
         )}
+      </div>
+
+      <div style={{ marginTop: '3rem', paddingTop: '1rem', borderTop: '1px solid rgba(0,0,0,0.1)' }}>
+        <button onClick={handleReset} style={{ background: 'none', border: 'none', color: '#9ca3af', fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'underline' }}>
+          Avbryt och börja om
+        </button>
       </div>
     </div>
   );

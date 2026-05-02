@@ -4,7 +4,8 @@ import Home from './pages/Home';
 import Schedule from './pages/Schedule';
 import QuizWalk from './pages/QuizWalk';
 import Menu from './pages/Menu';
-import { GraduationCap, Calendar, Footprints, Utensils } from 'lucide-react';
+import Admin from './pages/Admin';
+import { GraduationCap, Calendar, Footprints, Utensils, Lock } from 'lucide-react';
 import './index.css';
 
 const Navigation = () => {
@@ -47,8 +48,14 @@ function App() {
           <Route path="/schema" element={<Schedule />} />
           <Route path="/meny" element={<Menu />} />
           <Route path="/tipspromenad" element={<QuizWalk />} />
+          <Route path="/admin" element={<Admin />} />
         </Routes>
       </main>
+      <footer style={{ textAlign: 'center', padding: '2rem', paddingBottom: '6rem', opacity: 0.5, marginTop: 'auto' }}>
+        <Link to="/admin" style={{ color: 'inherit', textDecoration: 'none' }}>
+          <Lock size={12} />
+        </Link>
+      </footer>
     </Router>
   );
 }
