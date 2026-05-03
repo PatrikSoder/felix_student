@@ -24,18 +24,20 @@ steps:
   args: ['push', 'gcr.io/$PROJECT_ID/felix-student:$COMMIT_SHA']
 
 # Step 4: Deploy to Cloud Run
-# - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-#   entrypoint: gcloud
-#   args:
-#   - 'run'
-#   - 'deploy'
-#   - 'felix-student'
-#   - '--image'
-#   - 'gcr.io/$PROJECT_ID/felix-student:$COMMIT_SHA'
-#   - '--region'
-#   - 'europe-north1' # Replace with your desired region
-#   - '--platform'
-#   - 'managed'
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: gcloud
+  args:
+  - 'run'
+  - 'deploy'
+  - 'felixstudent'
+  - '--image'
+  - 'gcr.io/$PROJECT_ID/felix-student:$COMMIT_SHA'
+  - '--region'
+  - 'europe-north1'
+  - '--min-instances'
+  - '0'
+  - '--platform'
+  - 'managed'
 
 # Specify the image to be pushed
 images:
