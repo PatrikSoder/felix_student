@@ -126,7 +126,7 @@ const Admin = () => {
               <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                 {correctAnswers && (
                   <span style={{ fontSize: '0.9rem', background: 'var(--sweden-blue)', color: 'white', padding: '0.25rem 0.75rem', borderRadius: '2rem', fontWeight: 700, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-                    {Array.from({ length: 10 }, (_, i) => team.answers[i + 1] === correctAnswers[i + 1] ? 1 : 0).reduce((a, b) => a + Number(b), 0)} / 10 Rätt
+                    {Array.from({ length: 10 }, (_, i) => team.answers[i + 1] === correctAnswers[i + 1]).filter(Boolean).length} / 10 Rätt
                   </span>
                 )}
                 {team.isFinished && (
