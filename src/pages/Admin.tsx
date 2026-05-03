@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
+import { Users, LogOut } from 'lucide-react';
 import { signInWithPopup, onAuthStateChanged, signOut, type User } from 'firebase/auth';
 import { collection, getDocs, orderBy, query, doc, getDoc } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../firebase';
 
-// Ändra dessa till era faktiska e-postadresser!
 const ALLOWED_EMAILS = ['patrik.soder@gmail.com', 'hellekk@gmail.com'];
 
 interface TeamAnswer {
@@ -101,7 +101,6 @@ const Admin = () => {
     );
   }
 
-import { Users, LogOut } from 'lucide-react';
 
   return (
     <div className="glass-panel" style={{ padding: '2rem', marginTop: '2rem' }}>
@@ -137,7 +136,7 @@ import { Users, LogOut } from 'lucide-react';
                 )}
               </div>
             </div>
-            
+
             <div className="answer-grid">
               {Array.from({ length: 10 }, (_, i) => {
                 const qNum = i + 1;
@@ -146,12 +145,12 @@ import { Users, LogOut } from 'lucide-react';
                 if (ans === '1') badgeClass = 'badge-1';
                 else if (ans === 'X') badgeClass = 'badge-X';
                 else if (ans === '2') badgeClass = 'badge-2';
-                
+
                 let isCorrect = undefined;
                 if (correctAnswers && ans) {
                   isCorrect = ans === correctAnswers[qNum];
                 }
-                
+
                 return (
                   <div key={qNum} className={`answer-badge ${badgeClass}`} style={{ position: 'relative' }}>
                     <span className="question-number">Q{qNum}</span>
@@ -164,7 +163,7 @@ import { Users, LogOut } from 'lucide-react';
             </div>
           </div>
         ))}
-        
+
         {answers.length === 0 && !error && (
           <div style={{ textAlign: 'center', padding: '4rem 2rem', background: 'rgba(255,255,255,0.5)', borderRadius: '1rem', border: '2px dashed #d1d5db' }}>
             <Users size={48} color="#9ca3af" style={{ margin: '0 auto 1rem', display: 'block', opacity: 0.5 }} />
