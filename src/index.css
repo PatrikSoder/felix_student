@@ -153,3 +153,64 @@ h1, h2, h3 {
     padding-bottom: 5rem; /* space for bottom nav */
   }
 }
+
+/* Admin UI Styles */
+.admin-card {
+  background: white;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  border-left: 4px solid var(--sweden-blue);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  animation: fadeIn 0.5s ease-out forwards;
+  opacity: 0;
+}
+
+.admin-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.answer-grid {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+}
+
+.answer-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.5rem;
+  font-weight: 800;
+  font-size: 1.2rem;
+  border: 1px solid transparent;
+  transition: transform 0.2s;
+}
+
+.answer-badge:hover {
+  transform: scale(1.05);
+}
+
+.badge-1 { background-color: var(--sweden-blue); color: white; box-shadow: 0 2px 4px rgba(0,82,147,0.3); }
+.badge-X { background-color: var(--sweden-yellow); color: var(--text-dark); box-shadow: 0 2px 4px rgba(254,203,0,0.3); }
+.badge-2 { background-color: #10b981; color: white; box-shadow: 0 2px 4px rgba(16,185,129,0.3); } 
+.badge-empty { background-color: #f3f4f6; color: #9ca3af; border-color: #e5e7eb; }
+
+.question-number {
+  font-size: 0.6rem;
+  font-weight: 600;
+  opacity: 0.8;
+  margin-bottom: -4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}

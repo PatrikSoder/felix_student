@@ -11,7 +11,7 @@ steps:
   args:
   - -c
   - |
-    echo "$$FELIX_STUDENT_ENV_FILE" > .env.local
+    echo "$$FELIX_STUDENT_ENV_FILE" > env_file
   secretEnv:
   - 'FELIX_STUDENT_ENV_FILE'
 

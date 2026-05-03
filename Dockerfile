@@ -4,6 +4,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --legacy-peer-deps
 COPY . .
+RUN mv env_file .env.local || true
 RUN npm run build
 
 # Serverings-steg

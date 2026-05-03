@@ -11,6 +11,7 @@ interface TeamAnswer {
   teamName: string;
   answers: Record<number, string>;
   timestamp: any;
+  isFinished?: boolean;
 }
 
 const Admin = () => {
@@ -89,39 +90,62 @@ const Admin = () => {
     );
   }
 
+import { Users, LogOut } from 'lucide-react';
+
   return (
     <div className="glass-panel" style={{ padding: '2rem', marginTop: '2rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h2>Inkomna Svar ({answers.length})</h2>
-        <button onClick={handleLogout} className="btn-secondary" style={{ padding: '0.5rem 1rem' }}>
-          Logga ut
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', borderBottom: '2px solid rgba(0,0,0,0.05)', paddingBottom: '1rem' }}>
+        <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ background: 'var(--sweden-yellow)', borderRadius: '50%', padding: '0.5rem', display: 'flex', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+            <Users size={24} color="var(--sweden-blue)" />
+          </div>
+          Svarsresultat ({answers.length})
+        </h2>
+        <button onClick={handleLogout} className="btn-secondary" style={{ padding: '0.5rem 1rem', width: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
+          <LogOut size={18} /> Logga ut
         </button>
       </div>
 
-      {error && <div style={{ color: 'red', marginBottom: '1rem' }}>{error}</div>}
+      {error && <div style={{ color: '#b91c1c', marginBottom: '1.5rem', padding: '1rem', background: '#fee2e2', borderRadius: '0.5rem', border: '1px solid #f87171' }}>{error}</div>}
 
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead>
-            <tr style={{ borderBottom: '2px solid var(--sweden-blue)' }}>
-              <th style={{ padding: '1rem' }}>Lagnamn</th>
-              <th style={{ padding: '1rem' }}>Svar (1-10)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {answers.map((team) => {
-              const answerString = Array.from({ length: 10 }, (_, i) => team.answers[i + 1] || '-').join(' | ');
-              return (
-                <tr key={team.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
-                  <td style={{ padding: '1rem', fontWeight: 'bold' }}>{team.teamName}</td>
-                  <td style={{ padding: '1rem', letterSpacing: '2px' }}>{answerString}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        {answers.map((team, index) => (
+          <div key={team.id} className="admin-card" style={{ animationDelay: `${index * 0.05}s` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <h3 style={{ margin: 0, fontSize: '1.3rem', color: 'var(--text-dark)', fontWeight: 700 }}>{team.teamName}</h3>
+              {team.isFinished && (
+                <span style={{ fontSize: '0.75rem', background: '#dcfce7', color: '#166534', padding: '0.25rem 0.75rem', borderRadius: '2rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Inlämnad
+                </span>
+              )}
+            </div>
+            
+            <div className="answer-grid">
+              {Array.from({ length: 10 }, (_, i) => {
+                const qNum = i + 1;
+                const ans = team.answers[qNum];
+                let badgeClass = 'badge-empty';
+                if (ans === '1') badgeClass = 'badge-1';
+                else if (ans === 'X') badgeClass = 'badge-X';
+                else if (ans === '2') badgeClass = 'badge-2';
+                
+                return (
+                  <div key={qNum} className={`answer-badge ${badgeClass}`}>
+                    <span className="question-number">Q{qNum}</span>
+                    <span>{ans || '-'}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+        
         {answers.length === 0 && !error && (
-          <p style={{ textAlign: 'center', marginTop: '2rem', color: '#666' }}>Inga svar har kommit in ännu.</p>
+          <div style={{ textAlign: 'center', padding: '4rem 2rem', background: 'rgba(255,255,255,0.5)', borderRadius: '1rem', border: '2px dashed #d1d5db' }}>
+            <Users size={48} color="#9ca3af" style={{ margin: '0 auto 1rem', display: 'block', opacity: 0.5 }} />
+            <h3 style={{ margin: '0 0 0.5rem 0', color: '#4b5563' }}>Inga lag ännu</h3>
+            <p style={{ color: '#6b7280', margin: 0 }}>Svaren kommer att dyka upp här i realtid när lagen börjar spela tipspromenaden!</p>
+          </div>
         )}
       </div>
     </div>
