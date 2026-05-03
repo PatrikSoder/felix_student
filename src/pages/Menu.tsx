@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Utensils } from 'lucide-react';
 
 const Menu = () => {

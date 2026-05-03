@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { signInWithPopup, onAuthStateChanged, signOut, type User } from 'firebase/auth';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../firebase';

@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { PartyPopper } from 'lucide-react';
 
 const Home = () => {

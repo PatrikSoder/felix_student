@@ -179,7 +179,7 @@ const QuizWalk = () => {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
         <button 
-          onClick={() => setCurrentQuestion(prev => Math.max(1, prev - 1))}
+          onClick={() => setCurrentQuestion((prev: number) => Math.max(1, prev - 1))}
           disabled={currentQuestion === 1 || isSubmitting}
           style={{ background: 'transparent', border: 'none', color: currentQuestion === 1 ? '#ccc' : 'var(--sweden-blue)', cursor: currentQuestion === 1 ? 'not-allowed' : 'pointer', fontWeight: 500 }}
         >
@@ -188,7 +188,7 @@ const QuizWalk = () => {
 
         {currentQuestion < TOTAL_QUESTIONS ? (
           <button 
-            onClick={() => setCurrentQuestion(prev => Math.min(TOTAL_QUESTIONS, prev + 1))}
+            onClick={() => setCurrentQuestion((prev: number) => Math.min(TOTAL_QUESTIONS, prev + 1))}
             disabled={!answers[currentQuestion] || isSubmitting}
             style={{ background: 'transparent', border: 'none', color: !answers[currentQuestion] ? '#ccc' : 'var(--sweden-blue)', cursor: !answers[currentQuestion] ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}
           >
