@@ -11,7 +11,7 @@ export default defineConfig({
       manifest: {
         name: 'Felix Student 2026',
         short_name: 'Felix',
-        description: 'App för Felix studentmottagning 29 augusti',
+        description: 'App för Felix studentmottagning 29 maj',
         theme_color: '#005293',
         background_color: '#f8f9fa',
         display: 'standalone',

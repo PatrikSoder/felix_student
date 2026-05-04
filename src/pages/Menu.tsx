@@ -7,17 +7,16 @@ const Menu = () => {
       <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 0 }}>
         <Utensils /> Meny
       </h2>
-      
+
       <div style={{ marginTop: '1.5rem', background: 'white', padding: '1.5rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }}>
         <h3 style={{ color: 'var(--sweden-blue)', borderBottom: '2px solid var(--sweden-yellow)', paddingBottom: '0.5rem', marginTop: 0 }}>
           Buffé
         </h3>
         <ul style={{ listStyleType: 'none', padding: 0, lineHeight: '1.8' }}>
-          <li>🍖 Grillat kött (kyckling, fläskfilé)</li>
-          <li>🥗 Fräsch potatissallad</li>
-          <li>🥒 Grönsallad och tomat/mozzarella</li>
+          <li>🍖 Grillat kött - amerikanskt tema</li>
+          <li>🥗 majssallad</li>
+          <li>🥒 Sallad</li>
           <li>🥖 Nybakat bröd och smör</li>
-          <li>🍉 Uppskuren frukt</li>
         </ul>
 
         <h3 style={{ color: 'var(--sweden-blue)', borderBottom: '2px solid var(--sweden-yellow)', paddingBottom: '0.5rem', marginTop: '2rem' }}>

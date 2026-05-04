@@ -1,7 +1,7 @@
 # GEMINI.md - AI Context & Guidelines
 
 ## Projekt: Felix Student 2026
-Detta är en React-baserad webbapplikation (PWA) byggd för Felix studentmottagning den 29 augusti.
+Detta är en React-baserad webbapplikation (PWA) byggd för Felix studentmottagning den 29 Maj.
 
 ### Arkitektur & Stack
 - **Frontend**: React (Vite, TypeScript).

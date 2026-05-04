@@ -1,6 +1,6 @@
 # Felix Student App 2026
 
-En React-baserad PWA (Progressive Web App) byggd för Felix studentmottagning den 29 augusti.
+En React-baserad PWA (Progressive Web App) byggd för Felix studentmottagning den 29 Maj.
 
 ## Funktioner
 - **PWA**: Appen kan installeras på hemskärmen (iOS/Android).

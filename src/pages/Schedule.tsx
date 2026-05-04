@@ -3,9 +3,9 @@ import { Clock } from 'lucide-react';
 
 const Schedule = () => {
   const events = [
-    { time: '14:00', title: 'Mottagningen börjar', desc: 'Välkomstdrink och mingel' },
-    { time: '15:30', title: 'Mat serveras', desc: 'Buffé' },
-    { time: '17:00', title: 'Tipspromenad', desc: 'Dags att testa kunskaperna om Felix!' },
+    { time: '16:00', title: 'Mottagningen börjar', desc: 'Välkomstdrink och mingel' },
+    { time: '17:00', title: 'Mat serveras', desc: 'Buffé' },
+    { time: '16:30 - 17:30', title: 'Tipspromenad', desc: 'Dags att testa kunskaperna om Felix!' },
     { time: '19:00', title: 'Tårta & Kaffe', desc: 'Studenttårta' },
     { time: '21:00', title: 'Festen fortsätter', desc: 'Musik och bar' }
   ];
@@ -17,11 +17,11 @@ const Schedule = () => {
       </h2>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1.5rem' }}>
         {events.map((evt, idx) => (
-          <div key={idx} style={{ 
-            display: 'flex', 
-            gap: '1rem', 
-            background: 'white', 
-            padding: '1rem', 
+          <div key={idx} style={{
+            display: 'flex',
+            gap: '1rem',
+            background: 'white',
+            padding: '1rem',
             borderRadius: '0.5rem',
             borderLeft: '4px solid var(--sweden-blue)',
             boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
