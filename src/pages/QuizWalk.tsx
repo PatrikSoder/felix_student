@@ -165,7 +165,7 @@ const QuizWalk = () => {
 
       <div style={{ margin: '1.5rem 0', borderRadius: '0.5rem', overflow: 'hidden', border: '3px solid var(--sweden-blue)', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
         <img 
-          src={`https://placehold.co/600x400/005293/fecb00?text=Plats+for+Bild+till+Fraga+${currentQuestion}`} 
+          src={`/quiz/q${currentQuestion}.png`} 
           alt={`Fråga ${currentQuestion}`} 
           style={{ width: '100%', height: 'auto', display: 'block' }}
         />
