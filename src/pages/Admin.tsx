@@ -20,6 +20,8 @@ const Admin = () => {
   const [answers, setAnswers] = useState<TeamAnswer[]>([]);
   const [correctAnswers, setCorrectAnswers] = useState<Record<number, string> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [revealStep, setRevealStep] = useState<number>(0);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -100,7 +102,15 @@ const Admin = () => {
       </div>
     );
   }
+  const scoredTeams = answers.map(team => {
+    const score = correctAnswers ? Array.from({ length: 10 }, (_, i) => team.answers[i + 1] === correctAnswers[i + 1]).filter(Boolean).length : 0;
+    return { ...team, score };
+  });
+  const uniqueScores = Array.from(new Set(scoredTeams.map(t => t.score))).sort((a, b) => b - a);
 
+  const place1Teams = uniqueScores.length > 0 ? scoredTeams.filter(t => t.score === uniqueScores[0]) : [];
+  const place2Teams = uniqueScores.length > 1 ? scoredTeams.filter(t => t.score === uniqueScores[1]) : [];
+  const place3Teams = uniqueScores.length > 2 ? scoredTeams.filter(t => t.score === uniqueScores[2]) : [];
 
   return (
     <div className="glass-panel" style={{ padding: '2rem', marginTop: '2rem' }}>
@@ -109,16 +119,99 @@ const Admin = () => {
           <div style={{ background: 'var(--sweden-yellow)', borderRadius: '50%', padding: '0.5rem', display: 'flex', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
             <Users size={24} color="var(--sweden-blue)" />
           </div>
-          Svarsresultat ({answers.length})
+          {showLeaderboard ? 'Prisutdelning' : `Svarsresultat (${answers.length})`}
         </h2>
-        <button onClick={handleLogout} className="btn-secondary" style={{ padding: '0.5rem 1rem', width: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
-          <LogOut size={18} /> Logga ut
-        </button>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <button onClick={() => setShowLeaderboard(!showLeaderboard)} className="btn-secondary" style={{ padding: '0.5rem 1rem', width: 'auto' }}>
+            {showLeaderboard ? 'Dölj Prisutdelning' : 'Visa Prisutdelning'}
+          </button>
+          <button onClick={handleLogout} className="btn-secondary" style={{ padding: '0.5rem 1rem', width: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
+            <LogOut size={18} /> Logga ut
+          </button>
+        </div>
       </div>
 
       {error && <div style={{ color: '#b91c1c', marginBottom: '1.5rem', padding: '1rem', background: '#fee2e2', borderRadius: '0.5rem', border: '1px solid #f87171' }}>{error}</div>}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {showLeaderboard && (
+        <div className="admin-card" style={{ marginBottom: '2rem', background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', border: 'none', borderLeft: '4px solid var(--sweden-yellow)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>🏆 Prisutdelning</h3>
+            <button onClick={() => setRevealStep(0)} className="btn-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem', background: 'white', width: 'auto' }}>Återställ</button>
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1.5rem' }}>
+            {!correctAnswers ? (
+              <div style={{ padding: '2rem', textAlign: 'center', background: 'white', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                <h4 style={{ margin: '0 0 0.5rem 0', color: '#b45309', fontSize: '1.2rem' }}>Facit saknas</h4>
+                <p style={{ margin: 0, color: '#4b5563' }}>Topplistan kan inte beräknas förrän rätta svaren har lagts in i databasen.</p>
+              </div>
+            ) : (
+              <>
+                {/* 3rd place */}
+                {uniqueScores.length > 2 && (
+                  <div style={{ padding: '1rem', background: 'white', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h4 style={{ margin: 0, color: '#b45309' }}>🥉 Tredje plats</h4>
+                      {revealStep < 1 ? (
+                        <button onClick={() => setRevealStep(1)} className="btn-secondary" style={{ padding: '0.5rem 1rem', width: 'auto' }}>Avslöja</button>
+                      ) : (
+                        <span style={{ fontWeight: 'bold' }}>{uniqueScores[2]} poäng</span>
+                      )}
+                    </div>
+                    {revealStep >= 1 && (
+                      <div style={{ marginTop: '0.5rem', fontSize: '1.2rem', fontWeight: 'bold' }}>
+                        {place3Teams.map(t => t.teamName).join(', ')}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 2nd place */}
+                {uniqueScores.length > 1 && (
+                  <div style={{ padding: '1rem', background: 'white', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', opacity: revealStep >= 1 ? 1 : 0.5 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h4 style={{ margin: 0, color: '#94a3b8' }}>🥈 Andra plats</h4>
+                      {revealStep >= 1 && revealStep < 2 ? (
+                        <button onClick={() => setRevealStep(2)} className="btn-secondary" style={{ padding: '0.5rem 1rem', width: 'auto' }}>Avslöja</button>
+                      ) : revealStep >= 2 ? (
+                        <span style={{ fontWeight: 'bold' }}>{uniqueScores[1]} poäng</span>
+                      ) : null}
+                    </div>
+                    {revealStep >= 2 && (
+                      <div style={{ marginTop: '0.5rem', fontSize: '1.2rem', fontWeight: 'bold' }}>
+                        {place2Teams.map(t => t.teamName).join(', ')}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 1st place */}
+                {uniqueScores.length > 0 && (
+                  <div style={{ padding: '1rem', background: 'white', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', opacity: revealStep >= 2 ? 1 : 0.5, border: revealStep >= 3 ? '2px solid var(--sweden-yellow)' : 'none' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h4 style={{ margin: 0, color: '#ca8a04' }}>🥇 Vinnare!</h4>
+                      {revealStep >= 2 && revealStep < 3 ? (
+                        <button onClick={() => setRevealStep(3)} className="btn-primary" style={{ padding: '0.5rem 1rem', width: 'auto' }}>Avslöja</button>
+                      ) : revealStep >= 3 ? (
+                        <span style={{ fontWeight: 'bold' }}>{uniqueScores[0]} poäng</span>
+                      ) : null}
+                    </div>
+                    {revealStep >= 3 && (
+                      <div style={{ marginTop: '0.5rem', fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--sweden-blue)' }}>
+                        {place1Teams.map(t => t.teamName).join(', ')}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {!showLeaderboard && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         {answers.map((team, index) => (
           <div key={team.id} className="admin-card" style={{ animationDelay: `${index * 0.05}s` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -172,6 +265,7 @@ const Admin = () => {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 };
