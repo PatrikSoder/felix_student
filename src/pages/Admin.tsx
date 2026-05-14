@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Users, LogOut, FileQuestion, Plus, Trash2, Edit2, Save, X, GripVertical } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Users, LogOut, FileQuestion, Plus, Trash2, Edit2, Save, GripVertical } from 'lucide-react';
 import { signInWithPopup, onAuthStateChanged, signOut, type User } from 'firebase/auth';
-import { collection, getDocs, orderBy, query, doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, onSnapshot, orderBy, query, doc, getDoc, setDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../firebase';
 
 const ALLOWED_EMAILS = ['patrik.soder@gmail.com', 'hellekk@gmail.com'];
@@ -10,8 +10,9 @@ interface TeamAnswer {
   id: string;
   teamName: string;
   answers: Record<number, string>;
-  timestamp: any;
+  timestamp: Timestamp | null;
   isFinished?: boolean;
+  isAbandoned?: boolean;
 }
 
 export interface Question {
@@ -40,8 +41,10 @@ const Admin = () => {
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [isSavingQuestions, setIsSavingQuestions] = useState(false);
 
+  const answersUnsubscribeRef = useRef<(() => void) | null>(null);
+
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
 
@@ -50,7 +53,10 @@ const Admin = () => {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      answersUnsubscribeRef.current?.();
+    };
   }, []);
 
   const fetchData = async () => {
@@ -84,12 +90,18 @@ const Admin = () => {
       }
 
       const q = query(collection(db, 'quizwalk_answers'), orderBy('timestamp', 'desc'));
-      const querySnapshot = await getDocs(q);
-      const data: TeamAnswer[] = [];
-      querySnapshot.forEach((d) => {
-        data.push({ id: d.id, ...d.data() } as TeamAnswer);
+      answersUnsubscribeRef.current = onSnapshot(q, (snapshot) => {
+        const data: TeamAnswer[] = [];
+        snapshot.forEach((d) => {
+          if (!d.data().isAbandoned) {
+            data.push({ id: d.id, ...d.data() } as TeamAnswer);
+          }
+        });
+        setAnswers(data);
+      }, (err) => {
+        console.error(err);
+        setError('Kunde inte hämta data. Kontrollera att dina Firestore-regler tillåter läsning.');
       });
-      setAnswers(data);
     } catch (err) {
       console.error(err);
       setError('Kunde inte hämta data. Kontrollera att dina Firestore-regler tillåter läsning.');
@@ -105,16 +117,34 @@ const Admin = () => {
   };
 
   const handleLogout = () => {
+    answersUnsubscribeRef.current?.();
+    answersUnsubscribeRef.current = null;
     signOut(auth);
     setAnswers([]);
+  };
+
+  const handleDeleteTeam = async (team: TeamAnswer) => {
+    if (!window.confirm(`Ta bort "${team.teamName}"?`)) return;
+    if (!window.confirm(`Är du helt säker? "${team.teamName}" raderas permanent.`)) return;
+    try {
+      await deleteDoc(doc(db, 'quizwalk_answers', team.id));
+    } catch (err) {
+      console.error(err);
+      setError('Kunde inte radera laget.');
+    }
   };
 
   const saveQuestionsToDb = async (newQuestions: Question[]) => {
     setIsSavingQuestions(true);
     try {
       await setDoc(doc(db, 'quizwalk_config', 'questions'), { questions: newQuestions });
+
+      // Strip correctAnswer before writing the public doc so students can't read it
+      const publicQuestions = newQuestions.map(({ correctAnswer: _ca, ...rest }) => rest);
+      await setDoc(doc(db, 'quizwalk_config', 'questions_public'), { questions: publicQuestions });
+
       setQuestions(newQuestions);
-      
+
       const newCorrectAnswers: Record<number, string> = {};
       newQuestions.forEach((q: Question, i: number) => {
         newCorrectAnswers[i + 1] = q.correctAnswer;
@@ -485,6 +515,13 @@ const Admin = () => {
                         Inlämnad
                       </span>
                     )}
+                    <button
+                      onClick={() => handleDeleteTeam(team)}
+                      style={{ background: '#fee2e2', border: 'none', padding: '0.4rem', borderRadius: '0.25rem', cursor: 'pointer', color: '#ef4444', display: 'flex', alignItems: 'center' }}
+                      title="Ta bort lag"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 </div>
 

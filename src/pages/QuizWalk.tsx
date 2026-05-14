@@ -1,8 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
-import { collection, addDoc, updateDoc, doc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, serverTimestamp, getDoc, getDocs, query, where } from 'firebase/firestore';
 
 const STORAGE_KEY = 'felix_quizwalk_state';
+
+const loadInitialState = () => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (e) {
+    console.error("Could not parse saved state", e);
+  }
+  return null;
+};
 
 interface Question {
   id: string;
@@ -10,45 +22,44 @@ interface Question {
   option1: string;
   optionX: string;
   option2: string;
-  correctAnswer: '1' | 'X' | '2';
 }
 
 const QuizWalk = () => {
-  const loadInitialState = () => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (e) {
-      console.error("Could not parse saved state", e);
-    }
-    return null;
-  };
-
-  const savedState = loadInitialState();
+  const [savedState] = useState(loadInitialState);
 
   const [teamName, setTeamName] = useState(savedState?.teamName || '');
   const [docId, setDocId] = useState<string | null>(savedState?.docId || null);
+  const [writeToken, setWriteToken] = useState<string | null>(savedState?.writeToken || null);
   const [hasStarted, setHasStarted] = useState(savedState?.hasStarted || false);
   const [currentQuestion, setCurrentQuestion] = useState(savedState?.currentQuestion || 1);
   const [answers, setAnswers] = useState<Record<number, string>>(savedState?.answers || {});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [teamNameError, setTeamNameError] = useState<string | null>(null);
   const [isDone, setIsDone] = useState(savedState?.isDone || false);
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
+
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const qDoc = await getDoc(doc(db, 'quizwalk_config', 'questions'));
+        const qDoc = await getDoc(doc(db, 'quizwalk_config', 'questions_public'));
         if (qDoc.exists() && qDoc.data().questions) {
           setQuestions(qDoc.data().questions);
         }
       } catch (e) {
         console.error("Error fetching questions", e);
+        setFetchError(true);
       } finally {
         setLoadingQuestions(false);
       }
@@ -63,26 +74,38 @@ const QuizWalk = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       teamName,
       docId,
+      writeToken,
       hasStarted,
       currentQuestion,
       answers,
       isDone
     }));
-  }, [teamName, docId, hasStarted, currentQuestion, answers, isDone]);
+  }, [teamName, docId, writeToken, hasStarted, currentQuestion, answers, isDone]);
 
   const handleStart = async (e: React.FormEvent) => {
     e.preventDefault();
     if (teamName.trim().length > 0) {
       setIsSubmitting(true);
+      setTeamNameError(null);
       try {
         if (!docId) {
+          const existing = await getDocs(query(collection(db, 'quizwalk_answers'), where('teamName', '==', teamName.trim())));
+          const activeDocs = existing.docs.filter(d => !d.data().isAbandoned);
+          if (activeDocs.length > 0) {
+            setTeamNameError('Det finns redan ett lag med det namnet. Välj ett annat!');
+            return;
+          }
+
+          const token = crypto.randomUUID();
           const docRef = await addDoc(collection(db, 'quizwalk_answers'), {
             teamName,
             answers: {},
             isFinished: false,
-            timestamp: serverTimestamp()
+            timestamp: serverTimestamp(),
+            writeToken: token
           });
           setDocId(docRef.id);
+          setWriteToken(token);
         }
         setHasStarted(true);
       } catch (error) {
@@ -94,11 +117,19 @@ const QuizWalk = () => {
     }
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (window.confirm('Är ni säkra på att ni vill börja om? Alla nuvarande svar kommer att raderas!')) {
+      if (docId && writeToken) {
+        try {
+          await updateDoc(doc(db, 'quizwalk_answers', docId), { isAbandoned: true, writeToken });
+        } catch (e) {
+          console.error("Could not mark doc as abandoned", e);
+        }
+      }
       localStorage.removeItem(STORAGE_KEY);
       setTeamName('');
       setDocId(null);
+      setWriteToken(null);
       setHasStarted(false);
       setCurrentQuestion(1);
       setAnswers({});
@@ -106,23 +137,27 @@ const QuizWalk = () => {
     }
   };
 
-  const handleAnswer = async (answer: string) => {
+  const handleAnswer = (answer: string) => {
     const newAnswers = { ...answers, [currentQuestion]: answer };
     setAnswers(newAnswers);
-    
+
     if (docId) {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
       setIsSaving(true);
-      try {
-        const docRef = doc(db, 'quizwalk_answers', docId);
-        await updateDoc(docRef, {
-          answers: newAnswers,
-          lastUpdated: serverTimestamp()
-        });
-      } catch (error) {
-        console.error("Background save failed", error);
-      } finally {
-        setIsSaving(false);
-      }
+      saveTimeoutRef.current = setTimeout(async () => {
+        try {
+          const docRef = doc(db, 'quizwalk_answers', docId);
+          await updateDoc(docRef, {
+            answers: newAnswers,
+            lastUpdated: serverTimestamp(),
+            writeToken
+          });
+        } catch (error) {
+          console.error("Background save failed", error);
+        } finally {
+          setIsSaving(false);
+        }
+      }, 600);
     }
   };
 
@@ -134,7 +169,8 @@ const QuizWalk = () => {
       await updateDoc(docRef, {
         answers: answers,
         isFinished: true,
-        finishedAt: serverTimestamp()
+        finishedAt: serverTimestamp(),
+        writeToken
       });
       setIsDone(true);
     } catch (error) {
@@ -166,22 +202,32 @@ const QuizWalk = () => {
       <div className="glass-panel" style={{ padding: '2rem', marginTop: '2rem' }}>
         <h2>Tipspromenad</h2>
         <p>Gå runt och svara på frågorna. Skriv in ert lagnamn för att börja!</p>
-        {questions.length === 0 && (
+        {fetchError && (
+          <p style={{ color: '#b91c1c', fontSize: '0.9rem', marginBottom: '1rem', background: '#fee2e2', padding: '0.75rem', borderRadius: '0.5rem' }}>
+            Kunde inte ladda frågorna. Kontrollera din internetanslutning och ladda om sidan.
+          </p>
+        )}
+        {!fetchError && questions.length === 0 && (
           <p style={{ color: '#d97706', fontSize: '0.9rem', marginBottom: '1rem', background: '#fef3c7', padding: '0.75rem', borderRadius: '0.5rem' }}>
             Observera: Frågor saknas i databasen. Standard-läge med bilder (q1.png - q10.png) används.
           </p>
         )}
         <form onSubmit={handleStart} style={{ marginTop: '1.5rem' }}>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Lagnamn</label>
-          <input 
-            type="text" 
+          <input
+            type="text"
             value={teamName}
-            onChange={(e) => setTeamName(e.target.value)}
+            onChange={(e) => { setTeamName(e.target.value); setTeamNameError(null); }}
             placeholder="T.ex. Team Awesome"
             required
-            style={{ marginBottom: '1rem' }}
+            style={{ marginBottom: '0.5rem' }}
           />
-          <button type="submit" className="btn-primary" disabled={isSubmitting}>
+          {teamNameError && (
+            <p style={{ color: '#b91c1c', fontSize: '0.9rem', margin: '0 0 1rem', background: '#fee2e2', padding: '0.5rem 0.75rem', borderRadius: '0.5rem' }}>
+              {teamNameError}
+            </p>
+          )}
+          <button type="submit" className="btn-primary" disabled={isSubmitting} style={{ marginTop: '0.5rem' }}>
             {isSubmitting ? 'Startar...' : 'Starta Tipspromenaden'}
           </button>
         </form>
@@ -248,10 +294,10 @@ const QuizWalk = () => {
             Nästa &rarr;
           </button>
         ) : (
-          <button 
+          <button
             onClick={submitAnswers}
-            disabled={!answers[currentQuestion] || isSubmitting}
-            style={{ background: 'transparent', border: 'none', color: !answers[currentQuestion] ? '#ccc' : 'var(--sweden-blue)', cursor: !answers[currentQuestion] ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}
+            disabled={Object.keys(answers).length < totalQuestions || isSubmitting}
+            style={{ background: 'transparent', border: 'none', color: Object.keys(answers).length < totalQuestions ? '#ccc' : 'var(--sweden-blue)', cursor: Object.keys(answers).length < totalQuestions ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}
           >
             {isSubmitting ? 'Skickar...' : 'Skicka in svar'}
           </button>
