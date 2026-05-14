@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Hjälpfunktion för att kontrollera om användaren är inloggad
+    // och har en av de tillåtna e-postadresserna (Admin)
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.email == 'patrik.soder@gmail.com' || 
+        request.auth.token.email == 'hellekk@gmail.com'
+      );
+    }
+
+    // REGLER FÖR QUIZ-KONFIGURATION (Frågor och Rätt svar)
+    match /quizwalk_config/{docId} {
+      // Alla får läsa frågorna (så att frontend kan visa dem för studenterna)
+      // Om du har en separat fil för "correct_answers", bör du separera dessa, 
+      // men om du sparar rätt svar på frågor-dokumentet måste klienten kunna läsa.
+      allow read: if true; 
+      
+      // Endast inloggade admins får lägga till, ändra eller ta bort frågor och svar
+      allow write: if isAdmin();
+    }
+
+    // REGLER FÖR LAGENS SVAR
+    match /quizwalk_answers/{docId} {
+      // Alla kan skapa ett nytt dokument (när de startar tipspromenaden)
+      allow create: if true;
+      
+      // Tillåt uppdateringar (update) om de bara uppdaterar sin egen data
+      // I det här fallet saknar vi användarkonton på frontend för studenter, 
+      // så vi tillåter öppna uppdateringar. Vill du göra det strängare kan du
+      // kräva att dokumentet skapades nyligen eller liknande.
+      allow update: if true;
+
+      // Endast admins får radera andras svar eller läsa *allt* innehåll
+      // i collectionen (t.ex. för leaderboarden)
+      allow delete: if isAdmin();
+      
+      // OBS: Eftersom vi gör `getDocs()` på admin-sidan krävs det att list-rättigheter
+      // endast är för admins om vi vill skydda andras svar.
+      // Men studenterna behöver läsa sin egen data om de laddar om sidan...
+      // Men studentappen använder egentligen inte `getDocs()`, den använder localStorage.
+      allow read: if true; // Ändra till "if isAdmin()" om du vill dölja svaren för alla utom admin.
+    }
+  }
+}

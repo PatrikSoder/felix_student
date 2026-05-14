@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, serverTimestamp, getDoc } from 'firebase/firestore';
 
-const TOTAL_QUESTIONS = 10;
 const STORAGE_KEY = 'felix_quizwalk_state';
+
+interface Question {
+  id: string;
+  text: string;
+  option1: string;
+  optionX: string;
+  option2: string;
+  correctAnswer: '1' | 'X' | '2';
+}
 
 const QuizWalk = () => {
   const loadInitialState = () => {
@@ -28,6 +36,27 @@ const QuizWalk = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDone, setIsDone] = useState(savedState?.isDone || false);
+
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [loadingQuestions, setLoadingQuestions] = useState(true);
+
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        const qDoc = await getDoc(doc(db, 'quizwalk_config', 'questions'));
+        if (qDoc.exists() && qDoc.data().questions) {
+          setQuestions(qDoc.data().questions);
+        }
+      } catch (e) {
+        console.error("Error fetching questions", e);
+      } finally {
+        setLoadingQuestions(false);
+      }
+    };
+    fetchQuestions();
+  }, []);
+
+  const totalQuestions = questions.length > 0 ? questions.length : 10;
 
   // Auto-save to localStorage whenever state changes
   useEffect(() => {
@@ -116,6 +145,10 @@ const QuizWalk = () => {
     }
   };
 
+  if (loadingQuestions) {
+    return <div style={{ padding: '2rem', textAlign: 'center', marginTop: '2rem' }}>Laddar tipspromenad...</div>;
+  }
+
   if (isDone) {
     return (
       <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center', marginTop: '2rem' }}>
@@ -132,7 +165,12 @@ const QuizWalk = () => {
     return (
       <div className="glass-panel" style={{ padding: '2rem', marginTop: '2rem' }}>
         <h2>Tipspromenad</h2>
-        <p>Gå runt och hitta frågorna. Skriv in ert lagnamn för att börja svara!</p>
+        <p>Gå runt och svara på frågorna. Skriv in ert lagnamn för att börja!</p>
+        {questions.length === 0 && (
+          <p style={{ color: '#d97706', fontSize: '0.9rem', marginBottom: '1rem', background: '#fef3c7', padding: '0.75rem', borderRadius: '0.5rem' }}>
+            Observera: Frågor saknas i databasen. Standard-läge med bilder (q1.png - q10.png) används.
+          </p>
+        )}
         <form onSubmit={handleStart} style={{ marginTop: '1.5rem' }}>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Lagnamn</label>
           <input 
@@ -151,11 +189,13 @@ const QuizWalk = () => {
     );
   }
 
+  const currentQData = questions[currentQuestion - 1];
+
   return (
     <div className="glass-panel" style={{ padding: '2rem', marginTop: '2rem', textAlign: 'center' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <div style={{ color: '#6b7280', fontSize: '0.9rem', fontWeight: 600 }}>
-          Fråga {currentQuestion} av {TOTAL_QUESTIONS}
+          Fråga {currentQuestion} av {totalQuestions}
         </div>
         <div style={{ fontSize: '0.8rem', color: isSaving ? 'var(--sweden-blue)' : '#9ca3af', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {isSaving ? 'Sparar...' : 'Sparad'}
@@ -163,13 +203,26 @@ const QuizWalk = () => {
         </div>
       </div>
 
-      <div style={{ margin: '1.5rem 0', borderRadius: '0.5rem', overflow: 'hidden', border: '3px solid var(--sweden-blue)', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-        <img 
-          src={`/quiz/q${currentQuestion}.png`} 
-          alt={`Fråga ${currentQuestion}`} 
-          style={{ width: '100%', height: 'auto', display: 'block' }}
-        />
-      </div>
+      {currentQData ? (
+        <div style={{ margin: '1.5rem 0', padding: '1.5rem', background: 'white', borderRadius: '0.5rem', border: '3px solid var(--sweden-blue)', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', textAlign: 'left' }}>
+          <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.2rem', color: 'var(--text-dark)' }}>
+            {currentQData.text}
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {currentQData.option1 && <div style={{ fontSize: '1rem', color: '#4b5563' }}><strong style={{ color: 'var(--sweden-blue)' }}>1:</strong> {currentQData.option1}</div>}
+            {currentQData.optionX && <div style={{ fontSize: '1rem', color: '#4b5563' }}><strong style={{ color: 'var(--sweden-blue)' }}>X:</strong> {currentQData.optionX}</div>}
+            {currentQData.option2 && <div style={{ fontSize: '1rem', color: '#4b5563' }}><strong style={{ color: 'var(--sweden-blue)' }}>2:</strong> {currentQData.option2}</div>}
+          </div>
+        </div>
+      ) : (
+        <div style={{ margin: '1.5rem 0', borderRadius: '0.5rem', overflow: 'hidden', border: '3px solid var(--sweden-blue)', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+          <img 
+            src={`/quiz/q${currentQuestion}.png`} 
+            alt={`Fråga ${currentQuestion}`} 
+            style={{ width: '100%', height: 'auto', display: 'block' }}
+          />
+        </div>
+      )}
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}>
         <button className="btn-secondary" style={{ fontSize: '1.5rem', padding: '1rem', border: answers[currentQuestion] === '1' ? '4px solid var(--sweden-blue)' : 'none' }} onClick={() => handleAnswer('1')}>1</button>
@@ -186,9 +239,9 @@ const QuizWalk = () => {
           &larr; Föregående
         </button>
 
-        {currentQuestion < TOTAL_QUESTIONS ? (
+        {currentQuestion < totalQuestions ? (
           <button 
-            onClick={() => setCurrentQuestion((prev: number) => Math.min(TOTAL_QUESTIONS, prev + 1))}
+            onClick={() => setCurrentQuestion((prev: number) => Math.min(totalQuestions, prev + 1))}
             disabled={!answers[currentQuestion] || isSubmitting}
             style={{ background: 'transparent', border: 'none', color: !answers[currentQuestion] ? '#ccc' : 'var(--sweden-blue)', cursor: !answers[currentQuestion] ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}
           >
