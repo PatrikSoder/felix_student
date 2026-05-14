@@ -1,8 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
-import { Users, LogOut, FileQuestion, Plus, Trash2, Edit2, Save, GripVertical } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Users, LogOut, FileQuestion, Plus, Trash2, Edit2, Save, GripVertical, ImagePlus, X } from 'lucide-react';
 import { signInWithPopup, onAuthStateChanged, signOut, type User } from 'firebase/auth';
 import { collection, onSnapshot, orderBy, query, doc, getDoc, setDoc, deleteDoc, Timestamp } from 'firebase/firestore';
-import { auth, googleProvider, db } from '../firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { auth, googleProvider, db, storage } from '../firebase';
+import Cropper from 'react-easy-crop';
+import type { Area } from 'react-easy-crop';
 
 const ALLOWED_EMAILS = ['patrik.soder@gmail.com', 'hellekk@gmail.com'];
 
@@ -22,7 +25,23 @@ export interface Question {
   optionX: string;
   option2: string;
   correctAnswer: '1' | 'X' | '2';
+  imageUrl?: string;
 }
+
+const getCroppedImg = (imageSrc: string, pixelCrop: Area): Promise<Blob> =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener('load', () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = pixelCrop.width;
+      canvas.height = pixelCrop.height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(image, pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height, 0, 0, pixelCrop.width, pixelCrop.height);
+      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Canvas is empty')), 'image/jpeg', 0.88);
+    });
+    image.addEventListener('error', reject);
+    image.src = imageSrc;
+  });
 
 const Admin = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -40,6 +59,14 @@ const Admin = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [isSavingQuestions, setIsSavingQuestions] = useState(false);
+
+  // Image crop state
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const answersUnsubscribeRef = useRef<(() => void) | null>(null);
 
@@ -168,6 +195,44 @@ const Admin = () => {
       option2: '',
       correctAnswer: '1'
     });
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    setCropSrc(objectUrl);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const onCropComplete = useCallback((_: Area, areaPixels: Area) => {
+    setCroppedAreaPixels(areaPixels);
+  }, []);
+
+  const handleCropConfirm = async () => {
+    if (!cropSrc || !croppedAreaPixels || !editingQuestion) return;
+    setIsUploadingImage(true);
+    try {
+      const blob = await getCroppedImg(cropSrc, croppedAreaPixels);
+      const storageRef = ref(storage, `quiz-images/${editingQuestion.id}.jpg`);
+      const snapshot = await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
+      const url = await getDownloadURL(snapshot.ref);
+      setEditingQuestion(prev => prev ? { ...prev, imageUrl: url } : prev);
+      URL.revokeObjectURL(cropSrc);
+      setCropSrc(null);
+    } catch (err) {
+      console.error(err);
+      setError('Kunde inte ladda upp bilden. Kontrollera att Firebase Storage är aktiverat.');
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const handleCloseCrop = () => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
   };
 
   const handleDeleteQuestion = (id: string) => {
@@ -358,6 +423,33 @@ const Admin = () => {
                 </div>
               </div>
 
+              {/* Image upload */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Bild (valfritt)</label>
+                {editingQuestion.imageUrl && (
+                  <div style={{ position: 'relative', display: 'inline-block', marginBottom: '0.75rem' }}>
+                    <img src={editingQuestion.imageUrl} alt="Frågebild" style={{ width: '100%', maxHeight: '160px', objectFit: 'cover', borderRadius: '0.5rem', display: 'block' }} />
+                    <button
+                      type="button"
+                      onClick={() => setEditingQuestion({ ...editingQuestion, imageUrl: undefined })}
+                      title="Ta bort bild"
+                      style={{ position: 'absolute', top: 6, right: 6, background: '#ef4444', color: 'white', border: 'none', borderRadius: '50%', width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} style={{ display: 'none' }} />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="btn-secondary"
+                  style={{ padding: '0.5rem 1rem', width: 'auto', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  <ImagePlus size={16} /> {editingQuestion.imageUrl ? 'Byt bild' : 'Välj & beskär bild'}
+                </button>
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
                 <button onClick={() => setEditingQuestion(null)} className="btn-secondary" style={{ padding: '0.5rem 1rem', width: 'auto' }}>Avbryt</button>
                 <button onClick={handleSaveEdit} className="btn-primary" disabled={isSavingQuestions} style={{ padding: '0.5rem 1rem', width: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -381,11 +473,18 @@ const Admin = () => {
                 </div>
                 
                 <div style={{ flex: 1 }}>
-                  <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>{q.text}</h4>
-                  <div style={{ display: 'flex', gap: '1rem', fontSize: '0.9rem', color: '#4b5563' }}>
-                    <span style={{ fontWeight: q.correctAnswer === '1' ? 'bold' : 'normal', color: q.correctAnswer === '1' ? '#10b981' : 'inherit' }}>1: {q.option1 || '-'}</span>
-                    <span style={{ fontWeight: q.correctAnswer === 'X' ? 'bold' : 'normal', color: q.correctAnswer === 'X' ? '#10b981' : 'inherit' }}>X: {q.optionX || '-'}</span>
-                    <span style={{ fontWeight: q.correctAnswer === '2' ? 'bold' : 'normal', color: q.correctAnswer === '2' ? '#10b981' : 'inherit' }}>2: {q.option2 || '-'}</span>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                    {q.imageUrl && (
+                      <img src={q.imageUrl} alt="" style={{ width: 72, height: 48, objectFit: 'cover', borderRadius: '0.25rem', flexShrink: 0 }} />
+                    )}
+                    <div>
+                      <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>{q.text}</h4>
+                      <div style={{ display: 'flex', gap: '1rem', fontSize: '0.9rem', color: '#4b5563' }}>
+                        <span style={{ fontWeight: q.correctAnswer === '1' ? 'bold' : 'normal', color: q.correctAnswer === '1' ? '#10b981' : 'inherit' }}>1: {q.option1 || '-'}</span>
+                        <span style={{ fontWeight: q.correctAnswer === 'X' ? 'bold' : 'normal', color: q.correctAnswer === 'X' ? '#10b981' : 'inherit' }}>X: {q.optionX || '-'}</span>
+                        <span style={{ fontWeight: q.correctAnswer === '2' ? 'bold' : 'normal', color: q.correctAnswer === '2' ? '#10b981' : 'inherit' }}>2: {q.option2 || '-'}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -562,6 +661,39 @@ const Admin = () => {
           </div>
           )}
         </>
+      )}
+      {/* Crop modal */}
+      {cropSrc && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ background: 'white', borderRadius: '1rem', width: '100%', maxWidth: 560, padding: '1.5rem' }}>
+            <h3 style={{ margin: '0 0 1rem 0' }}>Beskär bild</h3>
+            <div style={{ position: 'relative', height: 280, borderRadius: '0.5rem', overflow: 'hidden', background: '#111' }}>
+              <Cropper
+                image={cropSrc}
+                crop={crop}
+                zoom={zoom}
+                aspect={16 / 9}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={onCropComplete}
+              />
+            </div>
+            <div style={{ marginTop: '1rem' }}>
+              <label style={{ fontSize: '0.85rem', color: '#6b7280' }}>Zoom</label>
+              <input
+                type="range" min={1} max={3} step={0.05} value={zoom}
+                onChange={e => setZoom(Number(e.target.value))}
+                style={{ width: '100%', marginTop: '0.25rem' }}
+              />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1.25rem' }}>
+              <button onClick={handleCloseCrop} className="btn-secondary" style={{ padding: '0.5rem 1rem', width: 'auto' }}>Avbryt</button>
+              <button onClick={handleCropConfirm} className="btn-primary" disabled={isUploadingImage} style={{ padding: '0.5rem 1rem', width: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {isUploadingImage ? 'Laddar upp...' : 'Spara beskärning'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
