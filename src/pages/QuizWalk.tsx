@@ -250,31 +250,15 @@ const QuizWalk = () => {
         </div>
       </div>
 
-      {currentQData ? (
-        <div style={{ margin: '1.5rem 0', background: 'white', borderRadius: '0.5rem', border: '3px solid var(--sweden-blue)', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', textAlign: 'left', overflow: 'hidden' }}>
-          {currentQData.imageUrl && (
-            <img src={currentQData.imageUrl} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
-          )}
-          <div style={{ padding: '1.5rem' }}>
-            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.2rem', color: 'var(--text-dark)' }}>
-              {currentQData.text}
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {currentQData.option1 && <div style={{ fontSize: '1rem', color: '#4b5563' }}><strong style={{ color: 'var(--sweden-blue)' }}>1:</strong> {currentQData.option1}</div>}
-              {currentQData.optionX && <div style={{ fontSize: '1rem', color: '#4b5563' }}><strong style={{ color: 'var(--sweden-blue)' }}>X:</strong> {currentQData.optionX}</div>}
-              {currentQData.option2 && <div style={{ fontSize: '1rem', color: '#4b5563' }}><strong style={{ color: 'var(--sweden-blue)' }}>2:</strong> {currentQData.option2}</div>}
+      <div style={{ margin: '1.5rem 0', background: 'white', borderRadius: '0.5rem', border: '3px solid var(--sweden-blue)', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
+        {currentQData?.imageUrl
+          ? <img src={currentQData.imageUrl} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
+          : <div style={{ padding: '2.5rem 1rem' }}>
+              <div style={{ fontSize: '5rem', fontWeight: 'bold', color: 'var(--sweden-blue)', lineHeight: 1 }}>{currentQuestion}</div>
+              <div style={{ fontSize: '0.95rem', color: '#6b7280', marginTop: '0.5rem' }}>Ange ditt svar nedan</div>
             </div>
-          </div>
-        </div>
-      ) : (
-        <div style={{ margin: '1.5rem 0', borderRadius: '0.5rem', overflow: 'hidden', border: '3px solid var(--sweden-blue)', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-          <img 
-            src={`/quiz/q${currentQuestion}.png`} 
-            alt={`Fråga ${currentQuestion}`} 
-            style={{ width: '100%', height: 'auto', display: 'block' }}
-          />
-        </div>
-      )}
+        }
+      </div>
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}>
         <button className="btn-secondary" style={{ fontSize: '1.5rem', padding: '1rem', border: answers[currentQuestion] === '1' ? '4px solid var(--sweden-blue)' : 'none' }} onClick={() => handleAnswer('1')}>1</button>
