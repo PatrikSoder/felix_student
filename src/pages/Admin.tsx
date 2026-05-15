@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Users, LogOut, FileQuestion, Plus, Trash2, Edit2, Save, GripVertical, ImagePlus, X } from 'lucide-react';
+import { Users, LogOut, FileQuestion, Plus, Trash2, Edit2, Save, GripVertical, ImagePlus, X, Printer } from 'lucide-react';
 import { signInWithPopup, onAuthStateChanged, signOut, type User } from 'firebase/auth';
 import { collection, onSnapshot, orderBy, query, doc, getDoc, setDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -235,6 +235,65 @@ const Admin = () => {
     setCropSrc(null);
   };
 
+  const esc = (s: string) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  const handlePrint = () => {
+    if (questions.length === 0) return;
+    const pages = questions.map((q, i) => `
+      <div class="page">
+        <div class="header">
+          <span class="title">Tipspromenaden</span>
+          <span class="num">Fråga ${i + 1}<span class="total"> / ${questions.length}</span></span>
+        </div>
+        ${q.imageUrl ? `<div class="img-wrap"><img src="${q.imageUrl}" /></div>` : '<div class="img-placeholder"></div>'}
+        <div class="question">${esc(q.text)}</div>
+        <div class="options">
+          <div class="opt"><div class="letter">1</div>${q.option1 ? `<div class="opt-text">${esc(q.option1)}</div>` : ''}</div>
+          <div class="opt"><div class="letter">X</div>${q.optionX ? `<div class="opt-text">${esc(q.optionX)}</div>` : ''}</div>
+          <div class="opt"><div class="letter">2</div>${q.option2 ? `<div class="opt-text">${esc(q.option2)}</div>` : ''}</div>
+        </div>
+      </div>`).join('');
+
+    const win = window.open('', '_blank');
+    if (!win) { alert('Tillåt popup-fönster för att skriva ut.'); return; }
+    win.document.write(`<!DOCTYPE html><html><head>
+      <meta charset="utf-8">
+      <title>Tipspromenaden – Frågor</title>
+      <style>
+        @page { size: A4 portrait; margin: 15mm; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; background: white; }
+        .page {
+          width: 180mm; height: 267mm;
+          page-break-after: always;
+          display: flex; flex-direction: column; gap: 10mm;
+        }
+        .page:last-child { page-break-after: avoid; }
+        .header {
+          display: flex; justify-content: space-between; align-items: baseline;
+          border-bottom: 3px solid #003f8a; padding-bottom: 4mm;
+        }
+        .title { font-size: 13pt; font-weight: bold; color: #003f8a; letter-spacing: 1px; text-transform: uppercase; }
+        .num { font-size: 26pt; font-weight: bold; color: #003f8a; }
+        .total { font-size: 14pt; color: #888; }
+        .img-wrap { flex: 1; min-height: 0; overflow: hidden; border-radius: 6px; }
+        .img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .img-placeholder { flex: 1; min-height: 0; border: 2px dashed #ccc; border-radius: 6px; }
+        .question { font-size: 20pt; font-weight: bold; line-height: 1.35; color: #111; }
+        .options { display: flex; gap: 5mm; }
+        .opt {
+          flex: 1; border: 2.5px solid #003f8a; border-radius: 8px;
+          padding: 5mm; display: flex; flex-direction: column; align-items: center; gap: 3mm;
+        }
+        .letter { font-size: 30pt; font-weight: bold; color: #003f8a; line-height: 1; }
+        .opt-text { font-size: 11pt; text-align: center; color: #333; }
+      </style>
+    </head><body>${pages}</body></html>`);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 400);
+  };
+
   const handleDeleteQuestion = (id: string) => {
     if (window.confirm('Är du säker på att du vill ta bort denna fråga?')) {
       const updated = questions.filter(q => q.id !== id);
@@ -351,9 +410,16 @@ const Admin = () => {
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <h3 style={{ margin: 0 }}>Tipspromenad Frågor ({questions.length})</h3>
-            <button onClick={handleAddQuestion} className="btn-primary" style={{ padding: '0.5rem 1rem', width: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Plus size={18} /> Lägg till fråga
-            </button>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              {questions.length > 0 && (
+                <button onClick={handlePrint} className="btn-secondary" style={{ padding: '0.5rem 1rem', width: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Printer size={18} /> Skriv ut
+                </button>
+              )}
+              <button onClick={handleAddQuestion} className="btn-primary" style={{ padding: '0.5rem 1rem', width: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Plus size={18} /> Lägg till fråga
+              </button>
+            </div>
           </div>
 
           {editingQuestion && (
