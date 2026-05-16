@@ -18,7 +18,23 @@ const Home = () => {
         </div>
         <div style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb', flex: '1', minWidth: '200px' }}>
           <h3 style={{ margin: '0 0 0.5rem 0' }}>Plats</h3>
-          <p style={{ margin: 0, fontSize: '1.1rem' }}>Ekvägen 6 Landvetter</p>
+          <p style={{ margin: 0, fontSize: '1.1rem' }}>
+            <a href="https://maps.app.goo.gl/ASKgZ44ELink3urS9" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--sweden-blue)', textDecoration: 'none', fontWeight: 'bold' }}>
+              Ekvägen 6, Landvetter
+            </a>
+          </p>
+          <div style={{ marginTop: '1rem', width: '100%', height: '200px', borderRadius: '0.5rem', overflow: 'hidden' }}>
+            <iframe
+              width="100%"
+              height="100%"
+              frameBorder="0"
+              scrolling="no"
+              marginHeight={0}
+              marginWidth={0}
+              src="https://maps.google.com/maps?q=Ekv%C3%A4gen%206,%20Landvetter&t=&z=14&ie=UTF8&iwloc=&output=embed"
+              title="Google Maps Location"
+            ></iframe>
+          </div>
         </div>
       </div>
     </div>
