@@ -373,6 +373,8 @@ const Admin = () => {
   const place2Teams = uniqueScores.length > 1 ? scoredTeams.filter(t => t.score === uniqueScores[1]) : [];
   const place3Teams = uniqueScores.length > 2 ? scoredTeams.filter(t => t.score === uniqueScores[2]) : [];
 
+  const effectiveRevealStep = Math.max(revealStep, 3 - Math.min(3, uniqueScores.length));
+
   return (
     <div className="glass-panel" style={{ padding: '2rem', marginTop: '2rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', borderBottom: '2px solid rgba(0,0,0,0.05)', paddingBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
@@ -606,13 +608,13 @@ const Admin = () => {
                       <div style={{ padding: '1rem', background: 'white', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <h4 style={{ margin: 0, color: '#b45309' }}>🥉 Tredje plats</h4>
-                          {revealStep < 1 ? (
+                          {effectiveRevealStep < 1 ? (
                             <button onClick={() => setRevealStep(1)} className="btn-secondary" style={{ padding: '0.5rem 1rem', width: 'auto' }}>Avslöja</button>
                           ) : (
                             <span style={{ fontWeight: 'bold' }}>{uniqueScores[2]} poäng</span>
                           )}
                         </div>
-                        {revealStep >= 1 && (
+                        {effectiveRevealStep >= 1 && (
                           <div style={{ marginTop: '0.5rem', fontSize: '1.2rem', fontWeight: 'bold' }}>
                             {place3Teams.map(t => t.teamName).join(', ')}
                           </div>
@@ -622,16 +624,16 @@ const Admin = () => {
 
                     {/* 2nd place */}
                     {uniqueScores.length > 1 && (
-                      <div style={{ padding: '1rem', background: 'white', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', opacity: revealStep >= 1 ? 1 : 0.5 }}>
+                      <div style={{ padding: '1rem', background: 'white', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', opacity: effectiveRevealStep >= 1 ? 1 : 0.5 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <h4 style={{ margin: 0, color: '#94a3b8' }}>🥈 Andra plats</h4>
-                          {revealStep >= 1 && revealStep < 2 ? (
+                          {effectiveRevealStep >= 1 && effectiveRevealStep < 2 ? (
                             <button onClick={() => setRevealStep(2)} className="btn-secondary" style={{ padding: '0.5rem 1rem', width: 'auto' }}>Avslöja</button>
-                          ) : revealStep >= 2 ? (
+                          ) : effectiveRevealStep >= 2 ? (
                             <span style={{ fontWeight: 'bold' }}>{uniqueScores[1]} poäng</span>
                           ) : null}
                         </div>
-                        {revealStep >= 2 && (
+                        {effectiveRevealStep >= 2 && (
                           <div style={{ marginTop: '0.5rem', fontSize: '1.2rem', fontWeight: 'bold' }}>
                             {place2Teams.map(t => t.teamName).join(', ')}
                           </div>
@@ -641,16 +643,16 @@ const Admin = () => {
 
                     {/* 1st place */}
                     {uniqueScores.length > 0 && (
-                      <div style={{ padding: '1rem', background: 'white', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', opacity: revealStep >= 2 ? 1 : 0.5, border: revealStep >= 3 ? '2px solid var(--sweden-yellow)' : 'none' }}>
+                      <div style={{ padding: '1rem', background: 'white', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', opacity: effectiveRevealStep >= 2 ? 1 : 0.5, border: effectiveRevealStep >= 3 ? '2px solid var(--sweden-yellow)' : 'none' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <h4 style={{ margin: 0, color: '#ca8a04' }}>🥇 Vinnare!</h4>
-                          {revealStep >= 2 && revealStep < 3 ? (
+                          {effectiveRevealStep >= 2 && effectiveRevealStep < 3 ? (
                             <button onClick={() => setRevealStep(3)} className="btn-primary" style={{ padding: '0.5rem 1rem', width: 'auto' }}>Avslöja</button>
-                          ) : revealStep >= 3 ? (
+                          ) : effectiveRevealStep >= 3 ? (
                             <span style={{ fontWeight: 'bold' }}>{uniqueScores[0]} poäng</span>
                           ) : null}
                         </div>
-                        {revealStep >= 3 && (
+                        {effectiveRevealStep >= 3 && (
                           <div style={{ marginTop: '0.5rem', fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--sweden-blue)' }}>
                             {place1Teams.map(t => t.teamName).join(', ')}
                           </div>
